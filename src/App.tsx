@@ -30,6 +30,7 @@ import {
   CategoryEdit,
   CategoryShow,
 } from "./pages/admin/categories";
+import { PetList, PetCreate } from "./pages/admin/pets";
 import { dataProvider } from "./providers/data";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { Header } from "./components/header";
@@ -69,6 +70,16 @@ function App() {
                     create: "/admin/categories/create",
                     edit: "/admin/categories/edit/:id",
                     show: "/admin/categories/show/:id",
+                    meta: {
+                      canDelete: true,
+                    },
+                  },
+                  {
+                    name: "pets",
+                    list: "/admin/pets",
+                    create: "/admin/pets/create",
+                    // edit: "/admin/pets/edit/:id",
+                    // show: "/admin/pets/show/:id",
                     meta: {
                       canDelete: true,
                     },
@@ -135,6 +146,12 @@ function App() {
                         <Route path="create" element={<CategoryCreate />} />
                         <Route path="edit/:id" element={<CategoryEdit />} />
                         <Route path="show/:id" element={<CategoryShow />} />
+                      </Route>
+                      <Route path="pets">
+                        <Route index element={<PetList />} />
+                        <Route path="create" element={<PetCreate />} />
+                        {/* <Route path="edit/:id" element={<PetEdit />} />
+                        <Route path="show/:id" element={<PetShow />} /> */}
                       </Route>
                     </Route>
                     <Route path="*" element={<ErrorComponent />} />

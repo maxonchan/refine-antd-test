@@ -39,7 +39,13 @@ export const dataProvider: DataProvider = {
         data: paginatedData as any,
         total: data.length,
       };
+    } else if (params.resource === "pets") {
+      return {
+        data: [] as any,
+        total: 0,
+      }
     }
+
 
     return baseProvider.dataProvider.getList(params);
   },
