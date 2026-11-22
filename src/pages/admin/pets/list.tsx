@@ -6,9 +6,10 @@ import {
 } from "@refinedev/antd";
 import type { BaseRecord } from "@refinedev/core";
 import { useTranslate } from "@refinedev/core";
-import { Space } from "antd";
+import { Card, Descriptions, Flex, Space } from "antd";
 import React, { useMemo } from "react";
 import { EditableList } from "../../../components/editable-list";
+import { SimpleTable } from "../../../components/simple-table";
 
 export const PetList = () => {
   const translate = useTranslate();
@@ -72,7 +73,53 @@ export const PetList = () => {
 
   return (
     <>
-      <EditableList columns={columns}></EditableList>
+      <SimpleTable
+        columns={[
+          {
+            title: "Job feature",
+            key: "job",
+          },
+          {
+            title: "File Name",
+            key: "fileName",
+          },
+        ]}
+        dataSource={[
+          {
+            job: "test",
+            fileName: "Test.txt",
+          },
+          {
+            job: "test2",
+            fileName: "Test2.txt",
+          },
+        ]}
+      ></SimpleTable>
+      <Flex gap={50}>
+        <Card title="User Info" size="small" style={{ width: 400 }}>
+          <Descriptions size="small" bordered column={1}>
+            <Descriptions.Item label="UserName">Zhou Maomao</Descriptions.Item>
+            <Descriptions.Item label="Telephone">1810000000</Descriptions.Item>
+            <Descriptions.Item label="Live">
+              Hangzhou, Zhejiang
+            </Descriptions.Item>
+            <Descriptions.Item label="Remark">empty</Descriptions.Item>
+            <Descriptions.Item label="Address">
+              No. 18, Wantang Road, Xihu District, Hangzhou, Zhejiang, China
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+        <Descriptions title="User Info" size="small" bordered column={1}>
+          <Descriptions.Item label="UserName">Zhou Maomao</Descriptions.Item>
+          <Descriptions.Item label="Telephone">1810000000</Descriptions.Item>
+          <Descriptions.Item label="Live">Hangzhou, Zhejiang</Descriptions.Item>
+          <Descriptions.Item label="Remark">empty</Descriptions.Item>
+          <Descriptions.Item label="Address">
+            No. 18, Wantang Road, Xihu District, Hangzhou, Zhejiang, China
+          </Descriptions.Item>
+        </Descriptions>
+      </Flex>
+      ;<EditableList columns={columns}></EditableList>
     </>
   );
 };
