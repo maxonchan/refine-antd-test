@@ -5,19 +5,14 @@ import { CloseOutlined } from "@ant-design/icons";
 const { useToken } = theme;
 
 export interface CheckableCardProps {
-  /** 卡片标题（可选） */
   title?: React.ReactNode;
-  /** 右上角附加自定义内容 */
   extra?: React.ReactNode;
   children?: React.ReactNode;
-  /** 卡片右上方是一个X【删除】按钮，删除按钮可配置是否显示 */
   showDelete?: boolean;
   onDelete?: () => void;
   deleteTitle?: string;
-  /** 是否处于选择模式 */
   selectable?: boolean;
   selected?: boolean;
-  /** 选择控件类型，默认 "checkbox"（多选），可配置为 "radio"（单选） */
   selectionType?: "checkbox" | "radio";
   onSelectChange?: (selected: boolean) => void;
   onClick?: () => void;
@@ -25,9 +20,6 @@ export interface CheckableCardProps {
   className?: string;
 }
 
-/**
- * 通用单行可勾选/可删除卡片容器组件
- */
 export const CheckableCard: React.FC<CheckableCardProps> = ({
   title,
   extra,
@@ -47,16 +39,15 @@ export const CheckableCard: React.FC<CheckableCardProps> = ({
 
   const handleCardClick = () => {
     if (selectable) {
-      if (selectionType === "radio") {
-        onSelectChange?.(!selected);
-      } else {
-        onSelectChange?.(!selected);
-      }
+      onSelectChange?.(!selected);
     }
     onClick?.();
   };
 
-  const actionExtra = (
+  const hasActions = selectable || showDelete || Boolean(extra);
+  const showCardHeader = Boolean(title);
+
+  const actionExtra = hasActions ? (
     <Space size={8} align="center" onClick={(e) => e.stopPropagation()}>
       {selectable &&
         (selectionType === "radio" ? (
@@ -86,24 +77,28 @@ export const CheckableCard: React.FC<CheckableCardProps> = ({
       )}
       {extra}
     </Space>
-  );
+  ) : null;
 
   return (
     <Card
       size="small"
       title={title}
-      extra={selectable || showDelete || extra ? actionExtra : undefined}
+      extra={showCardHeader ? actionExtra : undefined}
       hoverable={selectable}
       onClick={handleCardClick}
       className={className}
-      styles={{
-        header: {
-          borderBottom: 0,
-          marginBottom: -38,
-        },
-      }}
+      styles={
+        showCardHeader
+          ? {
+              header: {
+                borderBottom: 0,
+              },
+            }
+          : undefined
+      }
       style={{
-        width: "100%", // 一个卡片占一行
+        position: "relative",
+        width: "100%",
         borderRadius: 8,
         border: selected
           ? `2px solid ${token.colorPrimary}`
@@ -116,6 +111,18 @@ export const CheckableCard: React.FC<CheckableCardProps> = ({
         ...style,
       }}
     >
+      {!showCardHeader && actionExtra && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 12,
+            zIndex: 1,
+          }}
+        >
+          {actionExtra}
+        </div>
+      )}
       {children}
     </Card>
   );

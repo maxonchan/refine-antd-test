@@ -1,28 +1,13 @@
 import { Create, useForm } from "@refinedev/antd";
 import { useTranslate } from "@refinedev/core";
-import {
-  Button,
-  Empty,
-  Form,
-  Input,
-  List,
-  Modal,
-  Space,
-  Typography,
-} from "antd";
-import { SearchOutlined } from "@ant-design/icons";
-import React, { useMemo, useState } from "react";
-import {
-  PetInfoCard as PetCard,
-  type PetCardItem,
-} from "./components/pet-info-card";
+import { Button, Form, Input, Space } from "antd";
+import React, { useState } from "react";
+import { PetInfoCard, type PetCardItem } from "./components/pet-info-card";
 import {
   PositionInfoCard,
   type PositionCardItem,
 } from "./components/position-info-card";
-import type { SimpleTableColumn } from "../../../components/simple-table";
-
-const { Text } = Typography;
+import { CardSelectModal } from "../../../components";
 
 const mockPetCardList: PetCardItem[] = [
   {
@@ -258,156 +243,54 @@ const mockPositionList: PositionCardItem[] = [
   },
 ];
 
+const filterPetCard = (item: PetCardItem, keyword: string) => {
+  const matchName = item.name.toLowerCase().includes(keyword);
+  const matchTable = item.tableData.some(
+    (t) =>
+      t.job?.toLowerCase().includes(keyword) ||
+      t.fileName?.toLowerCase().includes(keyword) ||
+      t.remark?.toLowerCase().includes(keyword),
+  );
+  return matchName || matchTable;
+};
+
+const filterPositionCard = (item: PositionCardItem, keyword: string) => {
+  const matchName = item.name.toLowerCase().includes(keyword);
+  const matchTables = item.tables.some(
+    (t) =>
+      (typeof t.title === "string" &&
+        t.title.toLowerCase().includes(keyword)) ||
+      t.items.some(
+        (row) =>
+          (typeof row.label === "string" &&
+            row.label.toLowerCase().includes(keyword)) ||
+          (typeof row.value === "string" &&
+            row.value.toLowerCase().includes(keyword)),
+      ),
+  );
+  return matchName || matchTables;
+};
+
 export const PetCreate = () => {
   const translate = useTranslate();
   const { formProps, saveButtonProps } = useForm({});
 
-  // ===== ファイル名 选择状态 =====
-  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
-  const [fileKeyword, setFileKeyword] = useState("");
-  const [selectedFileCards, setSelectedFileCards] = useState<PetCardItem[]>([]);
-  const [tempSelectedFileIds, setTempSelectedFileIds] = useState<string[]>([]);
+  const [fileIds, setFileIds] = useState<string[]>([]);
+  const [posId, setPosId] = useState<string | null>(null);
+  const [modalType, setModalType] = useState<"file" | "pos" | null>(null);
 
-  // ===== 位置 选择状态（单选） =====
-  const [isPosModalOpen, setIsPosModalOpen] = useState(false);
-  const [posKeyword, setPosKeyword] = useState("");
-  const [selectedPosCard, setSelectedPosCard] = useState<PositionCardItem | null>(null);
-  const [tempSelectedPosId, setTempSelectedPosId] = useState<string | null>(null);
-
-  // 弹窗过滤后的文件卡片列表
-  const filteredFiles = useMemo(() => {
-    const trimmed = fileKeyword.trim().toLowerCase();
-    if (!trimmed) {
-      return mockPetCardList;
-    }
-    return mockPetCardList.filter((item) => {
-      const matchName = item.name.toLowerCase().includes(trimmed);
-      const matchTable = item.tableData.some(
-        (t) =>
-          t.job?.toLowerCase().includes(trimmed) ||
-          t.fileName?.toLowerCase().includes(trimmed) ||
-          t.remark?.toLowerCase().includes(trimmed),
-      );
-      return matchName || matchTable;
-    });
-  }, [fileKeyword]);
-
-  // 弹窗过滤后的位置卡片列表
-  const filteredPositions = useMemo(() => {
-    const trimmed = posKeyword.trim().toLowerCase();
-    if (!trimmed) {
-      return mockPositionList;
-    }
-    return mockPositionList.filter((item) => {
-      const matchName = item.name.toLowerCase().includes(trimmed);
-      const matchTables = item.tables.some(
-        (t) =>
-          (typeof t.title === "string" &&
-            t.title.toLowerCase().includes(trimmed)) ||
-          t.items.some(
-            (row) =>
-              (typeof row.label === "string" &&
-                row.label.toLowerCase().includes(trimmed)) ||
-              (typeof row.value === "string" &&
-                row.value.toLowerCase().includes(trimmed)),
-          ),
-      );
-      return matchName || matchTables;
-    });
-  }, [posKeyword]);
-
-  // ----- 文件选择相关逻辑 -----
-  const handleOpenFileModal = () => {
-    setTempSelectedFileIds(selectedFileCards.map((c) => c.id));
-    setFileKeyword("");
-    setIsFileModalOpen(true);
-  };
-
-  const handleToggleSelectFile = (checked: boolean, item: PetCardItem) => {
-    if (checked) {
-      setTempSelectedFileIds((prev) => [...prev, item.id]);
-    } else {
-      setTempSelectedFileIds((prev) => prev.filter((id) => id !== item.id));
-    }
-  };
-
-  const isAllCurrentFilteredFilesSelected =
-    filteredFiles.length > 0 &&
-    filteredFiles.every((item) => tempSelectedFileIds.includes(item.id));
-
-  const handleToggleSelectAllFiles = () => {
-    if (isAllCurrentFilteredFilesSelected) {
-      const currentFilteredIds = new Set(filteredFiles.map((f) => f.id));
-      setTempSelectedFileIds((prev) =>
-        prev.filter((id) => !currentFilteredIds.has(id)),
-      );
-    } else {
-      const combined = new Set([
-        ...tempSelectedFileIds,
-        ...filteredFiles.map((f) => f.id),
-      ]);
-      setTempSelectedFileIds(Array.from(combined));
-    }
-  };
-
-  const handleConfirmFileModal = () => {
-    const newSelected = mockPetCardList.filter((item) =>
-      tempSelectedFileIds.includes(item.id),
+  const updateFiles = (ids: string[]) => {
+    setFileIds(ids);
+    formProps.form?.setFieldValue(
+      "file_name",
+      ids.length > 0 ? ids : undefined,
     );
-    setSelectedFileCards(newSelected);
-
-    const selectedIds = newSelected.map((item) => item.id);
-
-    formProps.form?.setFieldsValue({
-      file_name: selectedIds.length > 0 ? selectedIds : undefined,
-    });
-    formProps.form?.validateFields(["file_name"]).catch(() => {});
-
-    setIsFileModalOpen(false);
-  };
-
-  const handleDeleteFileCard = (cardItem: PetCardItem) => {
-    const newSelected = selectedFileCards.filter((c) => c.id !== cardItem.id);
-    setSelectedFileCards(newSelected);
-
-    const selectedIds = newSelected.map((item) => item.id);
-
-    formProps.form?.setFieldsValue({
-      file_name: selectedIds.length > 0 ? selectedIds : undefined,
-    });
     formProps.form?.validateFields(["file_name"]).catch(() => {});
   };
 
-  // ----- 位置选择相关逻辑（单选） -----
-  const handleOpenPosModal = () => {
-    setTempSelectedPosId(selectedPosCard ? selectedPosCard.id : null);
-    setPosKeyword("");
-    setIsPosModalOpen(true);
-  };
-
-  const handleSelectPos = (item: PositionCardItem) => {
-    setTempSelectedPosId((prev) => (prev === item.id ? null : item.id));
-  };
-
-  const handleConfirmPosModal = () => {
-    const newSelected =
-      mockPositionList.find((item) => item.id === tempSelectedPosId) || null;
-    setSelectedPosCard(newSelected);
-
-    formProps.form?.setFieldsValue({
-      posId: newSelected ? newSelected.id : undefined,
-    });
-    formProps.form?.validateFields(["posId"]).catch(() => {});
-
-    setIsPosModalOpen(false);
-  };
-
-  const handleDeletePosCard = () => {
-    setSelectedPosCard(null);
-
-    formProps.form?.setFieldsValue({
-      posId: undefined,
-    });
+  const updatePos = (id: string | null) => {
+    setPosId(id);
+    formProps.form?.setFieldValue("posId", id ?? undefined);
     formProps.form?.validateFields(["posId"]).catch(() => {});
   };
 
@@ -416,19 +299,15 @@ export const PetCreate = () => {
       <Form {...formProps} layout="vertical">
         <Form.Item
           label={translate("pets.fields.name", "名前")}
-          name={["name"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
+          name="name"
+          rules={[{ required: true }]}
         >
           <Input />
         </Form.Item>
 
         <Form.Item
           label={translate("pets.fields.file_name", "ファイル名")}
-          name={["file_name"]}
+          name="file_name"
           rules={[
             {
               required: true,
@@ -440,23 +319,20 @@ export const PetCreate = () => {
             },
           ]}
         >
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            {/* 选择完之后，页面显示选择的卡片（每个卡片占一行，右上角带X【删除】按钮） */}
-            {selectedFileCards.length > 0 && (
-              <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                {selectedFileCards.map((item) => (
-                  <PetCard
-                    key={item.id}
-                    item={item}
-                    showDelete={true}
-                    onDelete={handleDeleteFileCard}
-                  />
-                ))}
-              </Space>
-            )}
-
-            {/* 选择按钮 */}
-            <Button type="primary" onClick={handleOpenFileModal}>
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            {mockPetCardList
+              .filter((item) => fileIds.includes(item.id))
+              .map((item) => (
+                <PetInfoCard
+                  key={item.id}
+                  item={item}
+                  showDelete
+                  onDelete={() =>
+                    updateFiles(fileIds.filter((id) => id !== item.id))
+                  }
+                />
+              ))}
+            <Button type="primary" onClick={() => setModalType("file")}>
               {translate("buttons.select", "選択")}
             </Button>
           </Space>
@@ -464,7 +340,7 @@ export const PetCreate = () => {
 
         <Form.Item
           label={translate("pets.fields.posId", "位置")}
-          name={["posId"]}
+          name="posId"
           rules={[
             {
               required: true,
@@ -475,180 +351,83 @@ export const PetCreate = () => {
             },
           ]}
         >
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            {/* 选择完之后，页面显示单选的位置卡片（右上角带X【删除】按钮） */}
-            {selectedPosCard && (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            {posId && (
               <PositionInfoCard
-                item={selectedPosCard}
+                item={mockPositionList.find((item) => item.id === posId)!}
                 nameLabel="位置"
-                showDelete={true}
-                onDelete={handleDeletePosCard}
+                showDelete
+                onDelete={() => updatePos(null)}
               />
             )}
-
-            {/* 选择位置按钮 */}
-            <Button type="primary" onClick={handleOpenPosModal}>
+            <Button type="primary" onClick={() => setModalType("pos")}>
               {translate("buttons.select", "選択")}
             </Button>
           </Space>
         </Form.Item>
       </Form>
 
-      {/* ファイル多选弹窗 */}
-      <Modal
+      <CardSelectModal
+        open={modalType === "file"}
         title={translate("pets.modals.select_file_title", "ファイル選択")}
-        open={isFileModalOpen}
-        onCancel={() => setIsFileModalOpen(false)}
-        onOk={handleConfirmFileModal}
-        okText={translate("buttons.confirm", "確定")}
-        cancelText={translate("buttons.cancel", "キャンセル")}
-        width={800}
-        destroyOnClose
-      >
-        <Space
-          direction="vertical"
-          size="middle"
-          style={{ width: "100%", marginTop: 12 }}
-        >
-          {/* 关键字搜索框与全选操作 */}
-          <Space style={{ width: "100%", justifyContent: "space-between" }}>
-            <Input.Search
-              placeholder={translate(
-                "pets.search.placeholder",
-                "名前、ファイル名またはキーワードで検索...",
-              )}
-              allowClear
-              enterButton={<SearchOutlined />}
-              value={fileKeyword}
-              onChange={(e) => setFileKeyword(e.target.value)}
-              style={{ width: 450 }}
-            />
-            <Space>
-              <Button size="small" onClick={handleToggleSelectAllFiles}>
-                {isAllCurrentFilteredFilesSelected ? "選択解除" : "すべて選択"}
-              </Button>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                選択済み: <strong>{tempSelectedFileIds.length}</strong> 件
-              </Text>
-            </Space>
-          </Space>
-
-          {/* 卡片分页列表（弹窗内多选，一个卡片占一行，删除按钮配置为不显示） */}
-          <List
-            pagination={{
-              pageSize: 3,
-              align: "center",
-              size: "small",
-              showTotal: (total) => `合計 ${total} 件`,
-            }}
-            dataSource={filteredFiles}
-            locale={{
-              emptyText: (
-                <Empty
-                  description={translate(
-                    "pets.empty.no_files",
-                    "一致するデータが見つかりません",
-                  )}
-                />
-              ),
-            }}
-            renderItem={(item) => {
-              const isSelected = tempSelectedFileIds.includes(item.id);
-              return (
-                <List.Item style={{ padding: "8px 0", borderBottom: "none" }}>
-                  <PetCard
-                    item={item}
-                    selectable={true}
-                    selected={isSelected}
-                    onSelectChange={handleToggleSelectFile}
-                    showDelete={false}
-                  />
-                </List.Item>
-              );
-            }}
+        multiple
+        dataSource={mockPetCardList}
+        value={fileIds}
+        searchPlaceholder={translate(
+          "pets.search.placeholder",
+          "名前、ファイル名またはキーワードで検索...",
+        )}
+        emptyText={translate(
+          "pets.empty.no_files",
+          "一致するデータが見つかりません",
+        )}
+        filterItem={filterPetCard}
+        onOk={(ids) => {
+          updateFiles(ids);
+          setModalType(null);
+        }}
+        onCancel={() => setModalType(null)}
+        renderItem={(item, isSelected, toggle) => (
+          <PetInfoCard
+            item={item}
+            selectable
+            selected={isSelected}
+            onSelectChange={toggle}
           />
-        </Space>
-      </Modal>
+        )}
+      />
 
-      {/* 位置多选弹窗 */}
-      <Modal
+      <CardSelectModal
+        open={modalType === "pos"}
         title={translate("pets.modals.select_pos_title", "位置選択")}
-        open={isPosModalOpen}
-        onCancel={() => setIsPosModalOpen(false)}
-        onOk={handleConfirmPosModal}
-        okText={translate("buttons.confirm", "確定")}
-        cancelText={translate("buttons.cancel", "キャンセル")}
-        width={800}
-        destroyOnClose
-      >
-        <Space
-          direction="vertical"
-          size="middle"
-          style={{ width: "100%", marginTop: 12 }}
-        >
-          {/* 关键字搜索框与单选状态（单选模式不提供全选操作） */}
-          <Space style={{ width: "100%", justifyContent: "space-between" }}>
-            <Input.Search
-              placeholder={translate(
-                "pets.search.pos_placeholder",
-                "位置名、作業内容またはキーワードで検索...",
-              )}
-              allowClear
-              enterButton={<SearchOutlined />}
-              value={posKeyword}
-              onChange={(e) => setPosKeyword(e.target.value)}
-              style={{ width: 450 }}
-            />
-            <Space>
-              {tempSelectedPosId && (
-                <Button size="small" onClick={() => setTempSelectedPosId(null)}>
-                  選択解除
-                </Button>
-              )}
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                選択済み: <strong>{tempSelectedPosId ? 1 : 0}</strong> 件
-              </Text>
-            </Space>
-          </Space>
-
-          {/* 卡片分页列表（弹窗内单选，一个卡片占一行，删除按钮配置为不显示） */}
-          <List
-            pagination={{
-              pageSize: 3,
-              align: "center",
-              size: "small",
-              showTotal: (total) => `合計 ${total} 件`,
-            }}
-            dataSource={filteredPositions}
-            locale={{
-              emptyText: (
-                <Empty
-                  description={translate(
-                    "pets.empty.no_positions",
-                    "一致するデータが見つかりません",
-                  )}
-                />
-              ),
-            }}
-            renderItem={(item) => {
-              const isSelected = tempSelectedPosId === item.id;
-              return (
-                <List.Item style={{ padding: "8px 0", borderBottom: "none" }}>
-                  <PositionInfoCard
-                    item={item}
-                    nameLabel="位置"
-                    selectable={true}
-                    selected={isSelected}
-                    selectionType="radio"
-                    onSelectChange={() => handleSelectPos(item)}
-                    showDelete={false}
-                  />
-                </List.Item>
-              );
-            }}
+        multiple={false}
+        dataSource={mockPositionList}
+        value={posId ? [posId] : []}
+        searchPlaceholder={translate(
+          "pets.search.pos_placeholder",
+          "位置名、作業内容またはキーワードで検索...",
+        )}
+        emptyText={translate(
+          "pets.empty.no_positions",
+          "一致するデータが見つかりません",
+        )}
+        filterItem={filterPositionCard}
+        onOk={(ids) => {
+          updatePos(ids[0] ?? null);
+          setModalType(null);
+        }}
+        onCancel={() => setModalType(null)}
+        renderItem={(item, isSelected, toggle) => (
+          <PositionInfoCard
+            item={item}
+            nameLabel="位置"
+            selectable
+            selected={isSelected}
+            selectionType="radio"
+            onSelectChange={toggle}
           />
-        </Space>
-      </Modal>
+        )}
+      />
     </Create>
   );
 };

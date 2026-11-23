@@ -17,14 +17,10 @@ export interface PetCardItem {
 export interface PetInfoCardProps {
   item: PetCardItem;
   columns?: SimpleTableColumn[];
-  /** 第一行标签，默认为 "姓名" */
   nameLabel?: React.ReactNode;
-  /** 第二行标签，默认为 "信息" */
   infoLabel?: React.ReactNode;
-  /** 卡片右上方是一个X【删除】按钮，删除按钮可配置是否显示 */
   showDelete?: boolean;
   onDelete?: (item: PetCardItem) => void;
-  /** 弹窗多选控制 */
   selectable?: boolean;
   selected?: boolean;
   onSelectChange?: (selected: boolean, item: PetCardItem) => void;
@@ -49,12 +45,6 @@ const defaultColumns: SimpleTableColumn[] = [
   },
 ];
 
-/**
- * 宠物信息卡片业务组件（基于通用的 CheckableCard 封装）
- * 分两行展示：
- * 第一行：【姓名：XXX】
- * 第二行：【信息：SimpleTable组件展示具体信息】
- */
 export const PetInfoCard: React.FC<PetInfoCardProps> = ({
   item,
   columns = defaultColumns,
@@ -79,12 +69,10 @@ export const PetInfoCard: React.FC<PetInfoCardProps> = ({
       style={style}
     >
       <Space direction="vertical" size={10} style={{ width: "100%" }}>
-        {/* 第一行：【姓名/位置：XXX】 */}
         <InfoRow label={nameLabel} align="center">
           {item.name}
         </InfoRow>
 
-        {/* 第二行：【信息：SimpleTable组件展示具体信息】（左右排列） */}
         <InfoRow label={infoLabel} align="flex-start" offsetLabelTop>
           <div
             style={{
@@ -100,11 +88,4 @@ export const PetInfoCard: React.FC<PetInfoCardProps> = ({
     </CheckableCard>
   );
 };
-
-export {
-  PositionInfoCard,
-  type PositionCardItem,
-  type PositionInfoCardProps,
-  type PositionTableItem,
-} from "./position-info-card";
 
