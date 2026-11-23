@@ -1,5 +1,5 @@
 import React from "react";
-import { List } from "antd";
+import { Flex, List, Space } from "antd";
 import {
   CheckableCard,
   InfoRow,
@@ -95,28 +95,18 @@ export const PositionInfoCard: React.FC<PositionInfoCardProps> = ({
 
         {/* 第二行：【信息：展示多个 info-card-table 的 list】 */}
         <InfoRow label={infoLabel} align="flex-start" offsetLabelTop={4}>
-          <List
-            size="small"
-            split={false}
-            dataSource={tables}
-            style={{ width: "100%" }}
-            renderItem={(table, index) => (
-              <List.Item
-                key={index}
+          <Flex align="flex-start" gap={8}>
+            {tables.map((item) => (
+              <InfoCardTable
+                title={item.title}
+                items={item.items}
+                labelWidth={item.labelWidth ?? "35%"}
                 style={{
-                  padding: 0,
-                  marginBottom: index < tables.length - 1 ? 8 : 0,
-                  borderBottom: "none",
+                  width: "30%",
                 }}
-              >
-                <InfoCardTable
-                  title={table.title}
-                  items={table.items}
-                  labelWidth={table.labelWidth ?? "35%"}
-                />
-              </List.Item>
-            )}
-          />
+              />
+            ))}
+          </Flex>
         </InfoRow>
       </div>
     </CheckableCard>
